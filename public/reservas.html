@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reserva de Espacios | Escuela de la Costa</title>
+  <meta name="description"
+    content="Reserva el Laboratorio, la Sala de Teatro o la Sala de Informática de la Escuela de la Costa. Consultá la disponibilidad y gestioná tu turno en línea.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { DEFAULT: '#1e6091', foreground: '#ffffff' },
+            secondary: { DEFAULT: '#d4e8f2', foreground: '#1a4568' },
+            accent: { DEFAULT: '#2d8a7b', foreground: '#ffffff' },
+            muted: { DEFAULT: '#e8f1f5', foreground: '#4a7089' },
+            card: { DEFAULT: '#f5f9fb', foreground: '#0f2d42' },
+            background: '#eef5f8',
+            foreground: '#0f2d42',
+            border: '#c5dae5',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['Playfair Display', 'Georgia', 'serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .gradient-ocean {
+      background: linear-gradient(135deg, #1e6091 0%, #2d8a7b 100%);
+    }
+
+    .gradient-soft {
+      background: linear-gradient(180deg, #eef5f8 0%, #d4e8f2 100%);
+    }
+
+    .gradient-section {
+      background: linear-gradient(180deg, #f5f9fb 0%, #eef5f8 100%);
+    }
+
+    .text-balance {
+      text-wrap: balance;
+    }
+
+    /* Slot grid */
+    .slot-available {
+      background: #e8f5f0;
+      border: 2px solid #2d8a7b;
+      color: #1a5c4f;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .slot-available:hover {
+      background: #2d8a7b;
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(45, 138, 123, 0.3);
+    }
+
+    .slot-occupied {
+      background: #fde8e8;
+      border: 2px solid #e57373;
+      color: #b71c1c;
+      cursor: not-allowed;
+    }
+
+    .slot-selected {
+      background: #1e6091 !important;
+      border-color: #1e6091 !important;
+      color: white !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(30, 96, 145, 0.35);
+    }
+
+    .slot-mine {
+      background: #1e6091;
+      border: 2px solid #1e6091;
+      color: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 10px rgba(30, 96, 145, 0.4);
+    }
+
+    .slot-mine:hover {
+      background: #e57373;
+      border-color: #e57373;
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(229, 115, 115, 0.4);
+    }
+
+    /* Room tab active */
+    .tab-btn.active {
+      background: #1e6091;
+      color: white;
+      box-shadow: 0 4px 12px rgba(30, 96, 145, 0.25);
+    }
+
+    /* Modal */
+    #booking-modal {
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.96);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    #modal-overlay {
+      animation: overlayIn 0.2s ease;
+    }
+
+    @keyframes overlayIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* Week nav pulse on hover */
+    .week-nav-btn {
+      transition: background 0.15s, transform 0.15s;
+    }
+
+    .week-nav-btn:hover {
+      transform: scale(1.08);
+    }
+
+    /* Toast */
+    #toast {
+      transition: opacity 0.4s, transform 0.4s;
+    }
+
+    #toast.show {
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+    }
+  </style>
+</head>
+
+<body class="font-sans antialiased bg-background text-foreground">
+  <!-- Header -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-md border-b border-border/50 shadow-sm">
+    <nav class="mx-auto flex max-w-7xl items-center justify-between p-4 lg:px-8">
+      <a href="index.html" class="flex items-center gap-3">
+        <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary">
+          <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+          </svg>
+        </div>
+        <span class="font-serif text-xl font-semibold text-foreground">Escuela de la Costa</span>
+      </a>
+      <div class="hidden lg:flex lg:gap-x-8">
+        <a href="index.html#inicio"
+          class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Inicio</a>
+        <a href="index.html#niveles"
+          class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Niveles</a>
+        <a href="index.html#proyectos"
+          class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Proyectos</a>
+        <a href="index.html#noticias"
+          class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Noticias</a>
+        <a href="index.html#contacto"
+          class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Contacto</a>
+      </div>
+      <div class="hidden lg:flex lg:gap-x-4">
+        <a href="reservas.html"
+          class="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">Reservar
+          Espacio</a>
+      </div>
+      <button id="mobile-menu-btn" class="lg:hidden p-2 rounded-lg hover:bg-muted">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </nav>
+    <div id="mobile-menu" class="hidden lg:hidden border-t border-border bg-card">
+      <div class="px-4 py-6 space-y-4">
+        <a href="index.html#inicio" class="block text-base font-medium text-foreground">Inicio</a>
+        <a href="index.html#niveles" class="block text-base font-medium text-muted-foreground">Niveles</a>
+        <a href="index.html#proyectos" class="block text-base font-medium text-muted-foreground">Proyectos</a>
+        <a href="index.html#noticias" class="block text-base font-medium text-muted-foreground">Noticias</a>
+        <a href="index.html#contacto" class="block text-base font-medium text-muted-foreground">Contacto</a>
+        <div class="pt-4">
+          <a href="reservas.html"
+            class="block w-full text-center px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg">Reservar
+            Espacio</a>
+        </div>
+      </div>
+    </div>
+  </header>
+  <!-- Hero -->
+  <section class="relative pt-32 pb-16 overflow-hidden">
+    <div class="absolute inset-0 gradient-ocean"></div>
+    <div class="absolute top-10 left-10 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 right-16 w-64 h-64 bg-accent/20 rounded-full blur-3xl"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-6 text-center">
+      <span
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 backdrop-blur-sm text-white text-sm font-medium border border-white/20 mb-6">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        Sistema de Reservas
+      </span>
+      <h1 class="font-serif text-4xl md:text-6xl font-bold text-white mb-4 text-balance leading-tight">
+        Reserva de Espacios
+      </h1>
+      <p class="text-lg md:text-xl text-white/85 max-w-2xl mx-auto leading-relaxed">
+        Consultá la disponibilidad y reservá el Laboratorio, la Sala de Teatro o la
+        Sala de Informática. Gestioná tus turnos de forma rápida y sencilla.
+      </p>
+    </div>
+  </section>
+  <!-- Main content -->
+  <main class="py-12 gradient-soft min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 lg:px-8">
+      <!-- Provider login bar -->
+      <div id="login-bar"
+        class="bg-card border border-border rounded-2xl p-6 shadow-md mb-8 flex flex-col md:flex-row items-center gap-4">
+        <div class="flex-1 w-full">
+          <h2 class="font-serif text-xl font-bold text-foreground mb-1">Identificate como docente</h2>
+          <p class="text-sm text-muted-foreground">Ingresá tu nombre y contraseña para gestionar reservas.</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <input id="provider-name" type="text" placeholder="Nombre de usuario"
+            class="px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm w-full sm:w-48" />
+          <input id="provider-password" type="password" placeholder="Contraseña"
+            class="px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-sm w-full sm:w-44" />
+          <button id="login-btn"
+            class="px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors shadow-md whitespace-nowrap">
+            Ingresar
+          </button>
+        </div>
+      </div>
+      <!-- Logged-in bar (hidden until login) -->
+      <div id="user-bar"
+        class="hidden bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-4 mb-8 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-full gradient-ocean flex items-center justify-center text-white font-bold text-sm"
+            id="user-avatar">?</div>
+          <div>
+            <p class="font-semibold text-foreground text-sm" id="user-display-name">—</p>
+            <p class="text-xs text-muted-foreground" id="user-display-org">—</p>
+          </div>
+        </div>
+        <button id="logout-btn"
+          class="text-xs text-muted-foreground hover:text-primary transition-colors underline">Cerrar sesión</button>
+      </div>
+      <!-- Room tabs -->
+      <div class="flex flex-wrap gap-3 mb-8">
+        <button id="tab-laboratorio" data-room="laboratorio"
+          class="tab-btn active flex items-center gap-2 px-5 py-3 rounded-xl border border-border bg-card text-sm font-semibold transition-all shadow-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+          </svg>
+          Laboratorio
+        </button>
+        <button id="tab-teatro" data-room="teatro"
+          class="tab-btn flex items-center gap-2 px-5 py-3 rounded-xl border border-border bg-card text-sm font-semibold transition-all shadow-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Sala de Teatro
+        </button>
+        <button id="tab-informatica" data-room="informatica"
+          class="tab-btn flex items-center gap-2 px-5 py-3 rounded-xl border border-border bg-card text-sm font-semibold transition-all shadow-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          Sala de Informática
+        </button>
+      </div>
+      <!-- Room description cards -->
+      <div id="room-info-laboratorio"
+        class="room-info bg-card border border-border rounded-2xl p-5 mb-6 flex items-center gap-5 shadow-sm">
+        <div class="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-serif text-xl font-bold text-foreground">Laboratorio de Ciencias</h3>
+          <p class="text-sm text-muted-foreground mt-1">Capacidad: 30 personas</p>
+        </div>
+      </div>
+      <div id="room-info-teatro"
+        class="room-info hidden bg-card border border-border rounded-2xl p-5 mb-6 flex items-center gap-5 shadow-sm">
+        <div class="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+          <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-serif text-xl font-bold text-foreground">Sala de Teatro</h3>
+          <p class="text-sm text-muted-foreground mt-1">Capacidad: 60 personas · (Consultar por disponibilidad de sala
+            de tecnica)</p>
+        </div>
+      </div>
+      <div id="room-info-informatica"
+        class="room-info hidden bg-card border border-border rounded-2xl p-5 mb-6 flex items-center gap-5 shadow-sm">
+        <div class="w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+          <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-serif text-xl font-bold text-foreground">Sala de Informática</h3>
+          <p class="text-sm text-muted-foreground mt-1">Capacidad: 30 personas</p>
+        </div>
+      </div>
+      <!-- Calendar controls -->
+      <div class="bg-card border border-border rounded-2xl p-5 shadow-md mb-4">
+        <div class="flex items-center justify-between mb-1">
+          <button id="prev-week"
+            class="week-nav-btn w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-white">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h2 id="week-label" class="font-serif text-lg font-bold text-foreground text-center"></h2>
+          <button id="next-week"
+            class="week-nav-btn w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-white">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+        <!-- Legend -->
+        <div class="flex flex-wrap gap-4 justify-center text-xs text-muted-foreground mt-3">
+          <span class="flex items-center gap-1.5"><span
+              class="w-4 h-4 rounded slot-available inline-block border-2 border-accent"></span> Disponible</span>
+          <span class="flex items-center gap-1.5"><span
+              class="w-4 h-4 rounded bg-red-100 inline-block border-2 border-red-400"></span> Ocupado</span>
+          <span class="flex items-center gap-1.5"><span
+              class="w-4 h-4 rounded bg-primary inline-block border-2 border-primary"></span> Tu reserva</span>
+        </div>
+      </div>
+      <!-- Schedule grid -->
+      <div class="bg-card border border-border rounded-2xl shadow-md overflow-x-auto">
+        <div id="schedule-grid" class="min-w-[640px]">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+      <!-- My bookings -->
+      <div id="my-bookings-section" class="hidden mt-10">
+        <h2 class="font-serif text-2xl font-bold text-foreground mb-4">Mis reservas</h2>
+        <div id="my-bookings-list" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Cards rendered by JS -->
+        </div>
+      </div>
+    </div>
+  </main>
+  <!-- Booking Modal -->
+  <div id="modal-overlay"
+    class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+    <div id="booking-modal" class="bg-card border border-border rounded-2xl p-8 shadow-2xl w-full max-w-md">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="font-serif text-2xl font-bold text-foreground" id="modal-title">Confirmar reserva</h3>
+        <button id="modal-close"
+          class="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="space-y-4 mb-6">
+        <div class="bg-muted/60 rounded-xl p-4">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Espacio</p>
+          <p class="font-semibold text-foreground" id="modal-room">—</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-muted/60 rounded-xl p-4">
+            <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Fecha</p>
+            <p class="font-semibold text-foreground text-sm" id="modal-date">—</p>
+          </div>
+          <div class="bg-muted/60 rounded-xl p-4">
+            <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Horario</p>
+            <p class="font-semibold text-foreground text-sm" id="modal-time">—</p>
+          </div>
+        </div>
+        <div>
+          <label for="modal-note" class="block text-sm font-medium text-foreground mb-2">Motivo / Nota <span
+              class="text-muted-foreground">(opcional)</span></label>
+          <textarea id="modal-note" rows="3"
+            class="w-full px-4 py-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary focus:border-primary transition-colors resize-none text-sm"
+            placeholder="Ej: Trabajo práctico de Biología, ensayo de obra, clase de robótica…"></textarea>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button id="modal-cancel"
+          class="flex-1 py-3 rounded-xl border border-border bg-background text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">
+          Cancelar
+        </button>
+        <button id="modal-confirm"
+          class="flex-1 py-3 rounded-xl gradient-ocean text-white text-sm font-semibold shadow-md hover:opacity-90 transition-opacity">
+          Confirmar reserva
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- Cancel Modal -->
+  <div id="cancel-overlay"
+    class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+    <div class="bg-card border border-border rounded-2xl p-8 shadow-2xl w-full max-w-sm"
+      style="animation:fadeIn .2s ease">
+      <h3 class="font-serif text-xl font-bold text-foreground mb-3">Cancelar reserva</h3>
+      <p class="text-sm text-muted-foreground mb-2">¿Estás seguro de que querés cancelar esta reserva?</p>
+      <p class="text-sm font-medium text-foreground mb-6" id="cancel-slot-label">—</p>
+      <div class="flex gap-3">
+        <button id="cancel-no"
+          class="flex-1 py-3 rounded-xl border border-border text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">No,
+          mantener</button>
+        <button id="cancel-yes"
+          class="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors">Sí,
+          cancelar</button>
+      </div>
+    </div>
+  </div>
+  <!-- Toast -->
+  <div id="toast"
+    class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl text-sm font-semibold text-white opacity-0 translate-y-4 pointer-events-none"
+    style="min-width:220px; max-width:90vw; justify-content:center;">
+  </div>
+  <!-- Footer -->
+  <footer class="bg-gradient-to-br from-primary to-accent text-white">
+    <div class="max-w-7xl mx-auto px-6 py-10">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+            </svg>
+          </div>
+          <span class="font-serif text-lg font-bold">Escuela de la Costa</span>
+        </div>
+        <p class="text-white/60 text-sm text-center">© 2026 Escuela de la Costa · Puerto Madryn, Patagonia Argentina</p>
+        <a href="index.html" class="text-white/70 hover:text-white text-sm transition-colors">← Volver al sitio
+          principal</a>
+      </div>
+    </div>
+  </footer>
+  <script>
+    // ─── CONSTANTS ─────────────────────────────────────────────────────────────
+    const ROOMS = {
+      laboratorio: 'Laboratorio de Ciencias',
+      teatro: 'Sala de Teatro',
+      informatica: 'Sala de Informática',
+    };
+    const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
+    const DAYS_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+    const MONTHS_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+    // ─── STATE ──────────────────────────────────────────────────────────────────
+    let SLOTS = [];
+    let currentRoom = 'laboratorio';
+    let currentWeekStart = getMonday(new Date());
+    let currentUser = null;   // { name, org, role }
+    let pendingSlot = null;   // { room, date, slot } for modal
+    let cancelSlot = null;   // same shape
+    let reservations = [];
+    let fixedReservations = [];
+
+    // Helper: get ISO date string for a day offset from weekStart
+    function isoDate(weekStart, dayOffset) {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + dayOffset);
+      return d.toISOString().slice(0, 10);
+    }
+
+    // ─── API FETCH ──────────────────────────────────────────────────────────────
+    async function fetchState() {
+      try {
+        const [slotsRes, resRes] = await Promise.all([
+          fetch('/api/slots').then(r => r.json()),
+          fetch('/api/reservations').then(r => r.json())
+        ]);
+        SLOTS = slotsRes.map(s => s.time_range);
+        reservations = resRes.reservations || [];
+        fixedReservations = resRes.fixed_reservations || [];
+        renderGrid();
+        renderMyBookings();
+      } catch (err) {
+        showToast('Error cargando datos del servidor', '#e57373');
+      }
+    }
+
+    // ─── UTILS ──────────────────────────────────────────────────────────────────
+    function getMonday(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = (day === 0) ? -6 : 1 - day;
+      d.setDate(d.getDate() + diff);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    function formatDate(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return `${d} de ${MONTHS_ES[m - 1]} ${y}`;
+    }
+
+    function getReservationForSlot(room, date, slot) {
+      const [y, m, day] = date.split('-');
+      const dLocal = new Date(y, m - 1, day);
+      const dayOfWeek = dLocal.getDay();
+
+      const fixed = fixedReservations.find(r => r.room === room && r.day_of_week === dayOfWeek && r.slot === slot);
+      if (fixed) return fixed;
+
+      return reservations.find(r => r.room === room && r.date === date && r.slot === slot);
+    }
+
+    function isMySlot(res) {
+      if (!currentUser || !res) return false;
+      return res.teacher_name === currentUser.name && res.teacher_org === currentUser.org;
+    }
+
+    // ─── RENDER ─────────────────────────────────────────────────────────────────
+    function renderWeekLabel() {
+      const end = new Date(currentWeekStart);
+      end.setDate(end.getDate() + 4);
+      const sm = MONTHS_ES[currentWeekStart.getMonth()];
+      const em = MONTHS_ES[end.getMonth()];
+      const sy = currentWeekStart.getFullYear();
+      const ey = end.getFullYear();
+      if (sm === em && sy === ey) {
+        document.getElementById('week-label').textContent =
+          `${currentWeekStart.getDate()} – ${end.getDate()} de ${sm} ${sy}`;
+      } else {
+        document.getElementById('week-label').textContent =
+          `${currentWeekStart.getDate()} ${sm} – ${end.getDate()} ${em} ${sy !== ey ? sy + '/' + ey : sy}`;
+      }
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('schedule-grid');
+      const dates = Array.from({ length: 5 }, (_, i) => isoDate(currentWeekStart, i));
+
+      let html = `
+    <div class="grid" style="grid-template-columns: 110px repeat(5, 1fr); gap:0;">
+      <!-- Header row -->
+      <div class="py-3 px-3 border-b border-r border-border"></div>`;
+      
+      dates.forEach((date, i) => {
+        const d = new Date(date);
+        const dayNum = d.getDate();
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const isToday = d.getTime() === today.getTime();
+        html += `
+      <div class="py-3 px-2 border-b border-r border-border text-center last:border-r-0">
+        <p class="text-xs text-muted-foreground font-medium">${DAYS_SHORT[i]}</p>
+        <p class="text-sm font-bold ${isToday ? 'text-primary' : 'text-foreground'}">${dayNum}${isToday ? ' ·' : ''}</p>
+        ${isToday ? '<p class="text-[10px] text-primary font-semibold">Hoy</p>' : ''}
+      </div>`;
+      });
+      
+      SLOTS.forEach(slot => {
+        html += `
+      <div class="py-3 px-3 border-b border-r border-border text-right">
+        <p class="text-xs text-muted-foreground font-medium leading-4">${slot.split('–')[0].trim()}</p>
+        <p class="text-[10px] text-border">–</p>
+        <p class="text-xs text-muted-foreground font-medium leading-4">${slot.split('–')[1].trim()}</p>
+      </div>`;
+        
+        dates.forEach((date) => {
+          const res = getReservationForSlot(currentRoom, date, slot);
+          const mine = isMySlot(res);
+          let cls, content, attrs;
+          
+          if (res && mine) {
+            cls = 'slot-mine';
+            content = `<span class="text-[11px] font-semibold block truncate">Tu reserva</span><span class="text-[10px] block truncate opacity-75">${res.note || res.teacher_org}</span>`;
+            attrs = `data-action="cancel" data-date="${date}" data-slot="${encodeURIComponent(slot)}" data-isfixed="${res.day_of_week !== undefined}"`;
+          } else if (res) {
+            cls = 'slot-occupied';
+            content = `<span class="text-[11px] font-semibold block truncate">${res.teacher_name}</span><span class="text-[10px] block truncate opacity-75">${res.teacher_org}</span>`;
+            attrs = '';
+          } else {
+            cls = 'slot-available';
+            content = `<span class="text-[11px] font-semibold">Disponible</span>`;
+            attrs = `data-action="book" data-date="${date}" data-slot="${encodeURIComponent(slot)}"`;
+          }
+          html += `
+        <div class="slot-cell ${cls} m-1 rounded-lg p-2 text-center last:border-r-0 border-r border-border/0 select-none" ${attrs} title="${res ? res.teacher_name + (res.note ? ' — ' + res.note : '') : 'Hacer reserva'}">
+          ${content}
+        </div>`;
+        });
+      });
+      html += `</div>`;
+      grid.innerHTML = html;
+      
+      grid.querySelectorAll('.slot-cell[data-action]').forEach(cell => {
+        cell.addEventListener('click', () => {
+          const action = cell.dataset.action;
+          const date = cell.dataset.date;
+          const slot = decodeURIComponent(cell.dataset.slot);
+          const isFixed = cell.dataset.isfixed === 'true';
+          
+          if (action === 'book') openBookingModal(currentRoom, date, slot);
+          if (action === 'cancel') {
+             if (isFixed && (!currentUser || currentUser.role !== 'admin')) {
+                showToast('⚠️ No puedes cancelar una reserva fija semanal.', '#e57373');
+             } else {
+                openCancelModal(currentRoom, date, slot, isFixed);
+             }
+          }
+        });
+      });
+    }
+
+    function renderMyBookings() {
+      const section = document.getElementById('my-bookings-section');
+      const list = document.getElementById('my-bookings-list');
+      if (!currentUser) { section.classList.add('hidden'); return; }
+      
+      const items = reservations.filter(r => r.teacher_name === currentUser.name && r.teacher_org === currentUser.org);
+      items.sort((a, b) => (a.date + a.slot) < (b.date + b.slot) ? -1 : 1);
+      
+      if (items.length === 0) {
+        section.classList.remove('hidden');
+        list.innerHTML = `<p class="text-muted-foreground text-sm col-span-3">No tenés reservas puntuales activas.</p>`;
+        return;
+      }
+      section.classList.remove('hidden');
+      
+      const roomColors = {
+        laboratorio: 'bg-blue-100 text-blue-700',
+        teatro: 'bg-purple-100 text-purple-700',
+        informatica: 'bg-emerald-100 text-emerald-700',
+      };
+      
+      list.innerHTML = items.map(item => `
+    <div class="bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+      <div class="flex items-start justify-between gap-2 mb-3">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold ${roomColors[item.room]}">${ROOMS[item.room]}</span>
+        <button class="text-xs text-red-400 hover:text-red-600 transition-colors underline cancel-booking-btn"
+          data-room="${item.room}" data-date="${item.date}" data-slot="${encodeURIComponent(item.slot)}">
+          Cancelar
+        </button>
+      </div>
+      <p class="font-semibold text-foreground text-sm">${formatDate(item.date)}</p>
+      <p class="text-sm text-muted-foreground">${item.slot}</p>
+      ${item.note ? `<p class="mt-2 text-xs text-muted-foreground italic">"${item.note}"</p>` : ''}
+    </div>
+  `).join('');
+      
+      list.querySelectorAll('.cancel-booking-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          openCancelModal(btn.dataset.room, btn.dataset.date, decodeURIComponent(btn.dataset.slot));
+        });
+      });
+    }
+
+    // ─── MODALS ─────────────────────────────────────────────────────────────────
+    function openBookingModal(room, date, slot) {
+      if (!currentUser) {
+        showToast('⚠️ Primero identificate como maestro.', '#e57373');
+        return;
+      }
+      pendingSlot = { room, date, slot };
+      document.getElementById('modal-room').textContent = ROOMS[room];
+      document.getElementById('modal-date').textContent = formatDate(date);
+      document.getElementById('modal-time').textContent = slot;
+      document.getElementById('modal-note').value = '';
+      document.getElementById('modal-overlay').classList.remove('hidden');
+    }
+    function closeBookingModal() {
+      document.getElementById('modal-overlay').classList.add('hidden');
+      pendingSlot = null;
+    }
+    function openCancelModal(room, date, slot, isFixed = false) {
+      cancelSlot = { room, date, slot, isFixed };
+      document.getElementById('cancel-slot-label').textContent =
+        `${ROOMS[room]} · ${formatDate(date)} · ${slot}`;
+      document.getElementById('cancel-overlay').classList.remove('hidden');
+    }
+    function closeCancelModal() {
+      document.getElementById('cancel-overlay').classList.add('hidden');
+      cancelSlot = null;
+    }
+    
+    // ─── TOAST ──────────────────────────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg, bg = '#2d8a7b') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.background = bg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+    }
+    
+    // ─── EVENT LISTENERS ────────────────────────────────────────────────────────
+    document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+      document.getElementById('mobile-menu').classList.toggle('hidden');
+    });
+
+    // Login
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      const name = document.getElementById('provider-name').value.trim();
+      const password = document.getElementById('provider-password').value.trim();
+      if (!name) { showToast('⚠️ Ingresá tu nombre.', '#e57373'); return; }
+      
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, password })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+           showToast(data.error || '⚠️ Docente no encontrado.', '#e57373');
+           return;
+        }
+
+        if (data.role === 'admin') {
+           window.location.href = 'admin.html';
+           return;
+        }
+
+        currentUser = { name: data.name, org: data.org, role: data.role };
+        document.getElementById('login-bar').classList.add('hidden');
+        document.getElementById('user-bar').classList.remove('hidden');
+        document.getElementById('user-display-name').textContent = currentUser.name;
+        document.getElementById('user-display-org').textContent = currentUser.org || 'Sin organización';
+        document.getElementById('user-avatar').textContent = currentUser.name[0].toUpperCase();
+        
+
+        renderGrid();
+        renderMyBookings();
+        showToast(`👋 Bienvenido/a, ${currentUser.name}!`);
+      } catch (err) {
+        showToast('Error de conexión', '#e57373');
+      }
+    });
+
+    document.getElementById('provider-name').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('login-btn').click();
+    });
+    document.getElementById('provider-password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('login-btn').click();
+    });
+
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      currentUser = null;
+      document.getElementById('login-bar').classList.remove('hidden');
+      document.getElementById('user-bar').classList.add('hidden');
+      document.getElementById('provider-name').value = '';
+      document.getElementById('provider-password').value = '';
+      renderGrid();
+      renderMyBookings();
+    });
+
+    // Room tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentRoom = btn.dataset.room;
+        document.querySelectorAll('.room-info').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`room-info-${currentRoom}`).classList.remove('hidden');
+        renderGrid();
+      });
+    });
+
+    // Week navigation
+    document.getElementById('prev-week').addEventListener('click', () => {
+      currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+      renderWeekLabel();
+      renderGrid();
+    });
+    document.getElementById('next-week').addEventListener('click', () => {
+      currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+      renderWeekLabel();
+      renderGrid();
+    });
+
+    // Booking modal
+    document.getElementById('modal-close').addEventListener('click', closeBookingModal);
+    document.getElementById('modal-cancel').addEventListener('click', closeBookingModal);
+    document.getElementById('modal-overlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('modal-overlay')) closeBookingModal();
+    });
+
+    document.getElementById('modal-confirm').addEventListener('click', async () => {
+      if (!pendingSlot) return;
+      const { room, date, slot } = pendingSlot;
+      const note = document.getElementById('modal-note').value.trim();
+      
+      try {
+        const res = await fetch('/api/reservations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+             room, date, slot,
+             teacher_name: currentUser.name,
+             teacher_org: currentUser.org,
+             note
+          })
+        });
+        if (!res.ok) throw new Error('Failed to book');
+        
+        await fetchState();
+        closeBookingModal();
+        showToast('✅ Reserva confirmada!');
+      } catch (err) {
+        showToast('❌ Error al confirmar reserva', '#e57373');
+      }
+    });
+
+    // Cancel modal
+    document.getElementById('cancel-no').addEventListener('click', closeCancelModal);
+    document.getElementById('cancel-overlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('cancel-overlay')) closeCancelModal();
+    });
+
+    document.getElementById('cancel-yes').addEventListener('click', async () => {
+      if (!cancelSlot) return;
+      const { room, date, slot, isFixed } = cancelSlot;
+      
+      try {
+        if (isFixed && currentUser && currentUser.role === 'admin') {
+           showToast('⚠️ Las reservas fijas se borran desde el Panel', '#e57373');
+           closeCancelModal();
+           return;
+        }
+
+        const res = await fetch(`/api/reservations?room=${room}&date=${date}&slot=${encodeURIComponent(slot)}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Failed to cancel');
+        
+        await fetchState();
+        closeCancelModal();
+        showToast('🗑️ Reserva cancelada.', '#e57373');
+      } catch (err) {
+        showToast('❌ Error al cancelar reserva', '#e57373');
+      }
+    });
+
+    // ─── INIT ────────────────────────────────────────────────────────────────────
+    renderWeekLabel();
+    fetchState();
+  </script>
+</body>
+
+</html>
