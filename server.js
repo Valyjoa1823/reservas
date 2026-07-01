@@ -81,7 +81,8 @@ function initDb() {
         const defaultSlots = [
           '07:40 – 08:20', '08:55 – 09:30', '09:40 – 10:20',
           '10:20 – 11:00', '11:10 – 11:50', '11:50 – 12:25',
-          '12:40 – 13:20', '13:20 – 13:55'
+          '12:40 – 13:20', '13:20 – 13:55', '13:55 – 15:00',
+          '15:00 – 16:00'
         ];
         const stmt = db.prepare('INSERT INTO slots (time_range) VALUES (?)');
         defaultSlots.forEach(s => stmt.run(s));
@@ -89,38 +90,48 @@ function initDb() {
       }
     });
 
-    // Pre-populate fixed reservations based on previous hardcoded data
+    // Pre-populate fixed reservations based on definitive data
     db.get('SELECT count(*) as count FROM fixed_reservations', (err, row) => {
       if (row.count === 0) {
-        // Lunes: Teatro Prof. German, Informatica Jimena y Marcela
-        // Martes: Informatica Jimena y Marcela (11:10 a 13:55)
-        // Viernes: Informatica Jimena y Marcela (todos menos 10:20-11:00)
-        
         const stmt = db.prepare('INSERT OR IGNORE INTO fixed_reservations (room, day_of_week, slot, teacher_name, teacher_org, note) VALUES (?, ?, ?, ?, ?, ?)');
-        const defaultSlots = [
+        
+        // --- INFORMÁTICA ---
+        const infoOriginalSlots = [
           '07:40 – 08:20', '08:55 – 09:30', '09:40 – 10:20',
           '10:20 – 11:00', '11:10 – 11:50', '11:50 – 12:25',
           '12:40 – 13:20', '13:20 – 13:55'
         ];
-
-        defaultSlots.forEach(slot => {
-          // Lunes (day 1)
-          stmt.run('teatro', 1, slot, 'Prof. German', 'Docente', 'Clase de Teatro');
+        infoOriginalSlots.forEach(slot => {
           stmt.run('informatica', 1, slot, 'Jimena y Marcela', 'Docentes', 'Clase de Informática');
-        });
-
-        const tuesdaySlots = ['11:10 – 11:50', '11:50 – 12:25', '12:40 – 13:20', '13:20 – 13:55'];
-        tuesdaySlots.forEach(slot => {
-          // Martes (day 2)
-          stmt.run('informatica', 2, slot, 'Jimena y Marcela', 'Docentes', 'Clase de Informática');
-        });
-
-        defaultSlots.forEach(slot => {
           if (slot !== '10:20 – 11:00') {
-            // Viernes (day 5)
             stmt.run('informatica', 5, slot, 'Jimena y Marcela', 'Docentes', 'Clase de Informática');
           }
         });
+        const infoTuesdaySlots = ['11:10 – 11:50', '11:50 – 12:25', '12:40 – 13:20', '13:20 – 13:55'];
+        infoTuesdaySlots.forEach(slot => {
+          stmt.run('informatica', 2, slot, 'Jimena y Marcela', 'Docentes', 'Clase de Informática');
+        });
+
+        // --- TEATRO DEFINITIVO ---
+        const insertTeatro = (day, slots) => {
+          slots.forEach(slot => stmt.run('teatro', day, slot, 'Prof. German', 'Docente', 'Clase de Teatro'));
+        };
+
+        // Lunes: 9:40 a 14:00
+        insertTeatro(1, ['09:40 – 10:20', '10:20 – 11:00', '11:10 – 11:50', '11:50 – 12:25', '12:40 – 13:20', '13:20 – 13:55']);
+        
+        // Martes: 12:40 a 14:00
+        insertTeatro(2, ['12:40 – 13:20', '13:20 – 13:55']);
+        
+        // Miercoles: 7:40 a 9:30 y de 11:50 a 14:00 y de 14:00 a 16:00
+        insertTeatro(3, ['07:40 – 08:20', '08:55 – 09:30', '11:50 – 12:25', '12:40 – 13:20', '13:20 – 13:55', '13:55 – 15:00', '15:00 – 16:00']);
+        
+        // Jueves: 11:40 a 14:00 (ajustado a 11:50)
+        insertTeatro(4, ['11:50 – 12:25', '12:40 – 13:20', '13:20 – 13:55']);
+        
+        // Viernes: 14:00 a 15:00 (ajustado a 13:55 - 15:00)
+        insertTeatro(5, ['13:55 – 15:00']);
+
         stmt.finalize();
       }
     });
